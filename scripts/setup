@@ -12,6 +12,19 @@ fi
 name=$1
 desc=$2
 
+# Get the last url for zegut show
+url_last=`curl -s "http://www.rtl2.fr/emission/poprockstation/timeline?filter=replay" | grep "http://www.rtl2.fr/actu/" | head -n 1 | sed 's/^\s*//g' | cut -d \" -f 2`
+
+previous_url=`cat last_zegut`
+
+if test $url_last = $previous_url
+then
+    echo "Already synchronized"
+    exit 2
+fi
+
+echo $url_last > last_zegut
+
 # Request auth_token
 if test $3 = yes
 then
@@ -25,7 +38,7 @@ echo $id_playlist
 
 echo "Attente création..."
 
-# Récupère la liste des chansons sur RTL2 | TODO : Clarifier
+# Get list of songs on url | TODO : Clean
 curl -s -X GET $url_last | grep "class=\"article-p mdl\"" | sed 's/<strong>/ /g' | sed 's/<\/strong>/ /g' | sed 's/<br\/>/\n/g' | sed 's/<em>//g' | sed 's/<\/em>//g' | tail -n +3 | sed 's/(nouveauté)//g' | sed 's/<p.*>//g' | sed 's/<\/p>//g' | sed 's/La reprise l.original//g' | sed 's/[0-9][0-9]h[0-9][0-9]//g' | sed '/^\s*$/d' | sed 's/^ //g' > liste_chansons
 
 chansons=`cat liste_chansons | sed 's/é/%C3%A9/g' |sed 's/ : //g' | sed 's/ *$//g' | sed 's/ /+/g'`
