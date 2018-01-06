@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Configuration
+. ../config/config.cfg
+
+if test $# -ne 2
+then
+    echo "Usage : $0 <name_playlist> <description>"
+    exit 1
+fi
+
+name=$1
+desc=$2
+
+# Request auth_token
+curl -d client_id=$client_id -d client_secret=$client_sec -d grant_type=refresh_token -d refresh_token=$refresh_token https://accounts.spotify.com/api/token | cut -d \" -f 4 > ../config/auth_token
+# TODO : Request only if expired
+
+# Create playlist
+id_playlist=`./create_playlist $name $desc`
+echo $id_playlist
+
+echo "Attente création..."
+
+# Récupère la liste des chansons sur RTL2 | TODO : Clarifier
+curl -s -X GET $url_last | grep "class=\"article-p mdl\"" | sed 's/<strong>/ /g' | sed 's/<\/strong>/ /g' | sed 's/<br\/>/\n/g' | sed 's/<em>//g' | sed 's/<\/em>//g' | tail -n +3 | sed 's/(nouveauté)//g' | sed 's/<p.*>//g' | sed 's/<\/p>//g' | sed 's/La reprise l.original//g' | sed 's/[0-9][0-9]h[0-9][0-9]//g' | sed '/^\s*$/d' | sed 's/^ //g' > liste_chansons
+
+chansons=`cat liste_chansons | sed 's/é/%C3%A9/g' |sed 's/ : //g' | sed 's/ *$//g' | sed 's/ /+/g'`
+
+# Récupération chansons
+#chansons=`cat liste_chansons | cut -d : -f 2 | sed 's/ *$//g' | sed 's/^ //g' | sed 's/ /+/g'`
+
+echo $chansons
+
+for i in $chansons
+do
+    ./add_track $i $id_playlist
+done

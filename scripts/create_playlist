@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Configuration
+. ../config/config.cfg
+
+if test $# -ne 2
+then
+    echo "Usage : $0 <name> <description>"
+    exit 1
+fi
+
+name=$1
+desc=$2
+
+# Get auth_token
+auth_token=`cat ../config/auth_token`
+
+id_playlist=`curl -s -X POST "https://api.spotify.com/v1/users/$id_user/playlists" -H "Accept: application/json" -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" --data "{\"description\":\"$desc\",\"public\":false,\"name\":\"$name\"}" | grep id | head -n 1 | awk '{print $3}' | cut -c2-23`
+
+echo $id_playlist
+

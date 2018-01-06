@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Configuration
+. ../config/config.cfg
+
+if test $# -ne 2
+then
+    echo "Usage : $0 <search> <id_playlist>"
+    exit 1
+fi
+
+search=`echo $1 | sed 's/ /+/g'`
+echo $search
+id_playlist=$2
+
+# Get auth_token
+auth_token=`cat ../config/auth_token`
+
+# Recherche
+echo "Recherche..."
+uri_track=`curl -s -X GET "https://api.spotify.com/v1/search?q=$search&type=track&limit=1" -H "Accept: application/json" -H "Authorization: Bearer $auth_token" | grep "spotify:track:" | cut -c16-51`
+
+echo "URI chanson : $uri_track"
+
+echo "Playlist : $id_playlist"
+# Ajout à la playlist
+curl -s -X POST "https://api.spotify.com/v1/users/$id_user/playlists/$id_playlist/tracks?uris=$uri_track" -H "Accept: application/json" -H "Authorization: Bearer $auth_token"
