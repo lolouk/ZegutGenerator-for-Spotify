@@ -33,7 +33,7 @@ fi
 # TODO : Request only if expired
 
 # Create playlist
-id_playlist=`./create_playlist $name $desc`
+id_playlist=`./create_playlist "$name" "$desc"`
 echo $id_playlist
 
 echo "Attente création..."
