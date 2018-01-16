@@ -13,9 +13,9 @@ name=$1
 desc=$2
 
 # Get the last url for zegut show
-url_last=`curl -s "http://www.rtl2.fr/emission/poprockstation/timeline?filter=replay" | grep "http://www.rtl2.fr/actu/" | head -n 1 | sed 's/^\s*//g' | cut -d \" -f 2`
+url_last=`curl -s "http://www.rtl2.fr/emission/poprockstation/timeline?filter=replay" | grep "http://www.rtl2.fr/actu/" | sed '1!d' | sed 's/^\s*//g' | cut -d \" -f 2`
 
-previous_url=`cat last_zegut`
+previous_url=`cat $chemin/scripts/last_zegut`
 
 if test $url_last = $previous_url
 then
@@ -23,32 +23,37 @@ then
     exit 2
 fi
 
-echo $url_last > last_zegut
+echo $url_last > $chemin/scripts/last_zegut
 
 # Request auth_token
 if test $3 = yes
 then
-    curl -s -d client_id=$client_id -d client_secret=$client_sec -d grant_type=refresh_token -d refresh_token=$refresh_token https://accounts.spotify.com/api/token | cut -d \" -f 4 > ../config/auth_token
+    curl -s -d client_id=$client_id -d client_secret=$client_sec -d grant_type=refresh_token -d refresh_token=$refresh_token https://accounts.spotify.com/api/token | cut -d \" -f 4 > $chemin/config/auth_token
 fi
 # TODO : Request only if expired
 
 # Create playlist
-id_playlist=`./create_playlist "$name" "$desc"`
+id_playlist=`$chemin/scripts/create_playlist "$name" "$desc"`
 echo $id_playlist
 
 echo "Attente création..."
 
 # Get list of songs on url | TODO : Clean
-curl -s -X GET $url_last | grep "class=\"article-p mdl\"" | sed 's/<strong>/ /g' | sed 's/<\/strong>/ /g' | sed 's/<br\/>/\n/g' | sed 's/<em>//g' | sed 's/<\/em>//g' | tail -n +3 | sed 's/(nouveauté)//g' | sed 's/<p.*>//g' | sed 's/<\/p>//g' | sed 's/La reprise l.original//g' | sed 's/[0-9][0-9]h[0-9][0-9]//g' | sed '/^\s*$/d' | sed 's/^ //g' > liste_chansons
+# curl -s -X GET $url_last | grep "class=\"article-p mdl\"" | sed 's/<strong>/ /g' | sed 's/<\/strong>/ /g' | sed 's/<br\/>/\n/g' | sed 's/<em>//g' | sed 's/<\/em>//g' | tail -n +3 | sed 's/(nouveauté)//g' | sed 's/<p.*>//g' | sed 's/<\/p>//g' | sed 's/La reprise l.original//g' | sed 's/[0-9][0-9]h[0-9][0-9]//g' | sed '/^\s*$/d' | sed 's/^ //g' > liste_chansons
 
-chansons=`cat liste_chansons | sed 's/é/%C3%A9/g' |sed 's/ : //g' | sed 's/ *$//g' | sed 's/ /+/g'`
+curl -s -X GET $url_last | grep "class=\"article-p mdl\"" | sed 's/<strong>/ /g' | sed 's/<\/strong>/ /g' | sed 's/<br\/>/\n/g' | sed 's/<em>//g' | sed 's/<\/em>//g' | tail -n +3 | sed 's/<p.*>//g' | sed 's/<\/p>//g' | sed 's/La reprise l.original//g' | sed 's/[0-9][0-9]h[0-9][0-9]//g' | sed '/^\s*$/d' | sed 's/^ //g' | sed 's/&amp;//g' | sed 's/(.*)//g' > $chemin/scripts/liste_chansons
+
+
+chansons=`cat $chemin/scripts/liste_chansons | sed 's/é/%C3%A9/g' |sed 's/ : //g' | sed 's/ *$//g' | sed 's/ /+/g'`
 
 # Récupération chansons
-#chansons=`cat liste_chansons | cut -d : -f 2 | sed 's/ *$//g' | sed 's/^ //g' | sed 's/ /+/g'`
+titles=(`cat $chemin/scripts/liste_chansons | cut -d : -f 2 | sed 's/ *$//g' | sed 's/^ //g' | sed 's/ /+/g'`)
+echo ${titles[*]}
 
 echo $chansons
-
-for i in $chansons
+n=0
+for i in $chansons 
 do
-    ./add_track $i $id_playlist
+    $chemin/scripts/add_track $i ${titles[n]} $id_playlist
+    let n=n+1
 done
